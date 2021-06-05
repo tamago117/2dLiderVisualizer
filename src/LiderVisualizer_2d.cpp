@@ -13,9 +13,9 @@
 
 const int height = 600;
 const int width = height;
-int cenY = height/2;
-int cenX = width/2;
-const int graphHeight = 300;
+const int cenY = height/2;
+const int cenX = width/2;
+const int graphHeight = 500;
 const int graphmargin = (height-graphHeight)/2;
 const int expanRate = 15;
 
@@ -128,10 +128,10 @@ void LiderVis::lasor_callback(const sensor_msgs::LaserScan& laser)
         int x = laserData[i] * cos(rad) + cenX;
         int y = -laserData[i] * sin(rad) + cenY;
         //draw red dots
-        cv::circle(image, cv::Point(x, y), 1, cv::Scalar(0, 0, 255), -1, cv::LINE_AA);
-        /*image.at<cv::Vec3b>(y,x)[0] = 0;
-        image.at<cv::Vec3b>(y,x)[1] = 0;
-        image.at<cv::Vec3b>(y,x)[2] = 255;*/
+        if(x>0 && y>0){
+            image.at<cv::Vec3b>(y,x) = cv::Vec3b(0,0,255);
+            //cv::circle(image, cv::Point(x, y), 1, cv::Scalar(0, 0, 255), -1, cv::LINE_AA);
+        }
         rad += dRad;
     }
 

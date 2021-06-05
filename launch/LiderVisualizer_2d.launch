@@ -1,0 +1,9 @@
+<launch>
+    <arg name="rvizconfig" default="$(find 2dLiderVisualizer)/rviz/LiderVisualizer_2d.rviz" />
+
+    <node name="urg_node" pkg="urg_node" type="urg_node">
+        <param name="ip_address" value="192.168.6.119"/>
+    </node>
+    <node name="LiderVisualizer_2d" pkg="2dLiderVisualizer" type="LiderVisualizer_2d"/>
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="true" />
+</launch>

@@ -13,6 +13,8 @@
 
 const int height = 600;
 const int width = height;
+int cenY = height/2;
+int cenX = width/2;
 const int graphHeight = 300;
 const int graphmargin = (height-graphHeight)/2;
 const int expanRate = 15;
@@ -25,11 +27,15 @@ ros::Subscriber vecSub;
 image_transport::Publisher graphImgPub;
 
 private:
-    float maxRangeVal;
-    float minRangeVal;
+    double maxRangeVal;
+    double minRangeVal;
+    double minAngle;
+    double maxAngle;
+    double dRad;
+
 
     cv::Mat image;
-    std::vector<float> rangeData;
+    std::vector<float> laserData;
     template <class T> T clip(const T& n, float lower, float upper);
     template <class T> T normalize(const T& n, float xmin, float xmax ,float amin, float amax);
     float minValue(const std::vector<float>& value);
@@ -45,8 +51,8 @@ LiderVis::LiderVis():it(nh)
     ros::NodeHandle pnh("~");
     pnh.getParam("maxRange", maxRangeVal);
 
-    graphImgPub = it.advertise("graphImage", 10);
-    vecSub = nh.subscribe("sensorValue", 10, &LiderVis::lasor_callback, this);
+    graphImgPub = it.advertise("scanImage", 10);
+    vecSub = nh.subscribe("scan", 10, &LiderVis::lasor_callback, this);
 }
 
 LiderVis::~LiderVis()
@@ -104,24 +110,35 @@ float LiderVis::maxValue(const std::vector<float>& value)
 
 void LiderVis::lasor_callback(const sensor_msgs::LaserScan& laser)
 {
-    minRangeVal = -maxRangeVal;
+    minRangeVal = laser.range_min;
+    maxRangeVal = laser.range_max;
+    minAngle = laser.angle_min;
+    maxAngle = laser.angle_max;
+    dRad = laser.angle_increment;
+    double rad = M_PI_2 - minAngle;
 
-    //->0~255
-    rangeData = normalize(laser.ranges, minRangeVal, maxRangeVal, 0, graphHeight);
+    laserData = normalize(laser.ranges, minRangeVal, maxValue(laser.ranges), 5, graphHeight/2);
 
-    image = cv::Mat(height, vecData_row.size()*(expanRate-1)+graphmargin*2, CV_8UC3, cv::Scalar(255, 255, 255));
+    image = cv::Mat(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
 
-    //centerLine
-    cv::line(image, cv::Point(0, height/2), cv::Point(vecData_row.size()*(expanRate-1)+graphmargin*2, height/2), cv::Scalar(0,0,0), 3, 4);
-    for(int i = 0;i<vecData_row.size()-1;i++){
-        cv::line(image, cv::Point(i*expanRate+graphmargin, graphHeight-vecData[i]+graphmargin), cv::Point((i+1)*expanRate+graphmargin, graphHeight-vecData[i+1]+graphmargin), cv::Scalar(0,0,255), 2, 4);
+    //center dots
+    cv::circle(image, cv::Point(cenX, cenY), 2, cv::Scalar(0, 0, 0), -1, cv::LINE_AA);
+    //laser
+    for(int i=0; i<laser.ranges.size(); i++){
+        int x = laserData[i] * cos(rad) + cenX;
+        int y = -laserData[i] * sin(rad) + cenY;
+        //draw red dots
+        cv::circle(image, cv::Point(x, y), 1, cv::Scalar(0, 0, 255), -1, cv::LINE_AA);
+        /*image.at<cv::Vec3b>(y,x)[0] = 0;
+        image.at<cv::Vec3b>(y,x)[1] = 0;
+        image.at<cv::Vec3b>(y,x)[2] = 255;*/
+        rad += dRad;
     }
 
-    cv::putText(image, std::to_string(maxValue(vecData_row)), cv::Point(25,15), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0,0,0), 2);
-    cv::putText(image, std::to_string(minValue(vecData_row)), cv::Point(25,height-15), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0,0,0), 2);
+    //cv::putText(image, std::to_string(minValue(vecData_row)), cv::Point(25,height-15), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0,0,0), 2);
 
-    sensor_msgs::ImagePtr graphImage = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
-    graphImgPub.publish(graphImage);
+    sensor_msgs::ImagePtr scanImage = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
+    graphImgPub.publish(scanImage);
 
     //image_g = cv_bridge::toCvCopy(image_message, sensor_msgs::image_encodings::MONO8)->image;
     //cv::imshow("image", image);
@@ -132,7 +149,7 @@ void LiderVis::lasor_callback(const sensor_msgs::LaserScan& laser)
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "2dLiderVis");
+    ros::init(argc, argv, "LiderVisualizer_2d");
     LiderVis lv;
 
     ros::spin();

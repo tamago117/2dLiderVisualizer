@@ -212,7 +212,7 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(2dLiderVisualizer   src/2dLiderVisualizer.cpp)
-target_link_libraries(2dLiderVisualizer
+add_executable(LiderVisualizer_2d   src/LiderVisualizer_2d.cpp)
+target_link_libraries(LiderVisualizer_2d
   ${catkin_LIBRARIES}
 )
